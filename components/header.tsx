@@ -13,7 +13,7 @@ export function Header() {
         </Link>
         <nav aria-label="Primary navigation">
           <Link className={pathname.startsWith("/projects") ? "active" : ""} href="/projects">Projects</Link>
-          <Link className="button button-small button-primary" href="/projects/new">New project <span>+</span></Link>
+          <Link className="button button-small button-primary" href="/projects/new"><span className="nav-new-label">New project</span><span aria-hidden="true">+</span></Link>
         </nav>
       </div>
     </header>

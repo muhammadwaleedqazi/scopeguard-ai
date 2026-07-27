@@ -11,6 +11,7 @@ import {
 } from "@/lib/webhooks";
 import type {
   Decision,
+  Project,
   ProjectAnalysis,
   Requirement,
   RiskLevel,
@@ -18,6 +19,7 @@ import type {
   ScopeFinding,
 } from "@/types/project";
 import { useProjects } from "./project-provider";
+import { useToast } from "./toast-provider";
 
 const dateFormatter = new Intl.DateTimeFormat("en", {
   day: "numeric",
@@ -64,9 +66,15 @@ function RequirementList({
   );
 }
 
-function DecisionList({ decisions }: { decisions: Decision[] }) {
+function DecisionList({
+  decisions,
+  emptyCopy = "No decisions have been recorded.",
+}: {
+  decisions: Decision[];
+  emptyCopy?: string;
+}) {
   if (!decisions.length) {
-    return <p className="section-empty">No decisions have been recorded.</p>;
+    return <p className="section-empty">{emptyCopy}</p>;
   }
   return (
     <ul className="record-items">
@@ -80,6 +88,117 @@ function DecisionList({ decisions }: { decisions: Decision[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function LoadingPanel({
+  kind,
+  compact = false,
+}: {
+  kind: "analysis" | "scope";
+  compact?: boolean;
+}) {
+  const steps =
+    kind === "analysis"
+      ? [
+          "Reading project context",
+          "Extracting requirements",
+          "Organising decisions and next steps",
+        ]
+      : [
+          "Comparing against confirmed scope",
+          "Assessing delivery risk",
+          "Preparing a professional reply",
+        ];
+
+  return (
+    <div
+      className={`loading-panel${compact ? " loading-panel-compact" : ""}`}
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <span className="loading-orbit" aria-hidden="true"><i /></span>
+      <div>
+        <span className="micro-label">
+          {kind === "analysis" ? "Analysing agreement" : "Reviewing request"}
+        </span>
+        <strong>
+          {kind === "analysis"
+            ? "Building the project record"
+            : "Checking for a scope change"}
+        </strong>
+        <ul>
+          {steps.map((step, index) => (
+            <li key={step} style={{ "--step-delay": `${index * 180}ms` } as React.CSSProperties}>
+              <span aria-hidden="true" />
+              {step}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function matchesSearch(
+  query: string,
+  values: Array<string | undefined>,
+): boolean {
+  if (!query) return true;
+  return values.some((value) => value?.toLowerCase().includes(query));
+}
+
+function ProjectActivityTimeline({ project }: { project: Project }) {
+  const events = [
+    {
+      id: `created-${project.id}`,
+      label: "Project created",
+      timestamp: project.createdAt,
+    },
+    ...(project.analysis
+      ? [
+          {
+            id: `analysis-${project.analysis.analysedAt}`,
+            label: "Project analysis completed",
+            timestamp: project.analysis.analysedAt,
+          },
+        ]
+      : []),
+    ...project.scopeChecks.map((scopeCheck) => ({
+      id: `scope-${scopeCheck.id}`,
+      label: "Scope check completed",
+      timestamp: scopeCheck.checkedAt,
+    })),
+  ]
+    .filter((event) => !Number.isNaN(new Date(event.timestamp).getTime()))
+    .sort(
+      (first, second) =>
+        new Date(second.timestamp).getTime() -
+        new Date(first.timestamp).getTime(),
+    );
+
+  if (events.length < 2) return null;
+
+  return (
+    <section className="activity-panel" aria-labelledby="activity-title">
+      <div>
+        <span className="micro-label">Project activity</span>
+        <h2 id="activity-title">Recent record</h2>
+      </div>
+      <ol>
+        {events.slice(0, 5).map((event) => (
+          <li key={event.id}>
+            <span aria-hidden="true" />
+            <div>
+              <strong>{event.label}</strong>
+              <time dateTime={event.timestamp}>
+                {dateFormatter.format(new Date(event.timestamp))}
+              </time>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -105,20 +224,26 @@ function AnalysisPanel({
   loading,
   canAnalyse,
   error,
+  summaryCopied,
   onAnalyse,
+  onCopySummary,
   onToggleAction,
 }: {
   analysis?: ProjectAnalysis;
   loading: boolean;
   canAnalyse: boolean;
   error: string;
+  summaryCopied: boolean;
   onAnalyse: () => void;
+  onCopySummary: () => void;
   onToggleAction: (id: string) => void;
 }) {
+  const [searchQuery, setSearchQuery] = useState("");
+
   if (loading) {
     return (
-      <section className="analysis-shell" aria-live="polite">
-        <div className="inline-loading"><span /><div><strong>Structuring the project record</strong><p>Reviewing the saved context and organizing the agreement…</p></div></div>
+      <section className="analysis-shell">
+        <LoadingPanel kind="analysis" />
       </section>
     );
   }
@@ -141,12 +266,46 @@ function AnalysisPanel({
     );
   }
 
+  const query = searchQuery.trim().toLowerCase();
   const confirmed = analysis.requirements.filter(
-    (requirement) => requirement.status === "confirmed",
+    (requirement) =>
+      requirement.status === "confirmed" &&
+      matchesSearch(query, [
+        requirement.text,
+        requirement.evidence,
+        requirement.status,
+      ]),
   );
   const needsAttention = analysis.requirements.filter(
-    (requirement) => requirement.status !== "confirmed",
+    (requirement) =>
+      requirement.status !== "confirmed" &&
+      matchesSearch(query, [
+        requirement.text,
+        requirement.evidence,
+        requirement.status,
+      ]),
   );
+  const decisions = analysis.decisions.filter((decision) =>
+    matchesSearch(query, [decision.text, decision.evidence]),
+  );
+  const deadlines = analysis.deadlines.filter((deadline) =>
+    matchesSearch(query, [deadline.task, deadline.date, deadline.evidence]),
+  );
+  const actionItems = analysis.actionItems.filter((action) =>
+    matchesSearch(query, [
+      action.task,
+      action.owner,
+      action.deadline,
+      action.evidence,
+      action.status,
+    ]),
+  );
+  const searchResultCount =
+    confirmed.length +
+    needsAttention.length +
+    decisions.length +
+    deadlines.length +
+    actionItems.length;
 
   return (
     <section className="analysis-shell">
@@ -161,28 +320,76 @@ function AnalysisPanel({
       </div>
 
       <article className="summary-panel">
-        <span className="section-kicker">Project summary</span>
+        <div className="summary-panel-heading">
+          <span className="section-kicker">Project summary</span>
+          <button
+            className="copy-button copy-button-dark"
+            type="button"
+            aria-label="Copy project summary"
+            onClick={onCopySummary}
+          >
+            {summaryCopied ? "Copied" : "Copy summary"}
+          </button>
+        </div>
         <p>{analysis.summary}</p>
       </article>
+
+      <div className="analysis-toolbar" role="search">
+        <label htmlFor="analysis-search">Filter analysis</label>
+        <div className="search-control">
+          <span aria-hidden="true">⌕</span>
+          <input
+            id="analysis-search"
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search requirements, decisions, deadlines, or actions"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              aria-label="Clear analysis search"
+              onClick={() => setSearchQuery("")}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <p aria-live="polite">
+          {query
+            ? `${searchResultCount} ${searchResultCount === 1 ? "result" : "results"}`
+            : "Search the structured project record"}
+        </p>
+      </div>
+
+      {query && searchResultCount === 0 && (
+        <div className="search-empty" role="status">
+          <span aria-hidden="true">0</span>
+          <div>
+            <strong>No requirements, decisions, deadlines, or actions match “{searchQuery.trim()}”.</strong>
+            <p>Try a broader term or clear the filter to view the full record.</p>
+          </div>
+        </div>
+      )}
 
       <div className="analysis-grid">
         <article className="analysis-card analysis-card-wide">
           <div className="analysis-card-title"><span>01</span><h3>Confirmed requirements</h3><b>{confirmed.length}</b></div>
-          <RequirementList requirements={confirmed} emptyCopy="No confirmed requirements were identified." />
+          <RequirementList requirements={confirmed} emptyCopy={query ? "No confirmed requirements match this search." : "No confirmed requirements were identified."} />
         </article>
         <article className="analysis-card analysis-card-wide">
           <div className="analysis-card-title"><span>02</span><h3>Proposed or unclear</h3><b>{needsAttention.length}</b></div>
-          <RequirementList requirements={needsAttention} emptyCopy="No proposed or unclear requirements were identified." />
+          <RequirementList requirements={needsAttention} emptyCopy={query ? "No proposed or unclear requirements match this search." : "No proposed or unclear requirements were identified."} />
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>03</span><h3>Decisions</h3><b>{analysis.decisions.length}</b></div>
-          <DecisionList decisions={analysis.decisions} />
+          <div className="analysis-card-title"><span>03</span><h3>Decisions</h3><b>{decisions.length}</b></div>
+          <DecisionList decisions={decisions} emptyCopy={query ? "No decisions match this search." : undefined} />
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>04</span><h3>Deadlines</h3><b>{analysis.deadlines.length}</b></div>
-          {analysis.deadlines.length ? (
+          <div className="analysis-card-title"><span>04</span><h3>Deadlines</h3><b>{deadlines.length}</b></div>
+          {deadlines.length ? (
             <ul className="record-items">
-              {analysis.deadlines.map((deadline) => (
+              {deadlines.map((deadline) => (
                 <li key={deadline.id}>
                   <span className="item-primary">{deadline.task}</span>
                   <span className="item-meta">{deadline.date}</span>
@@ -190,13 +397,13 @@ function AnalysisPanel({
                 </li>
               ))}
             </ul>
-          ) : <p className="section-empty">No deadlines were identified.</p>}
+          ) : <p className="section-empty">{query ? "No deadlines match this search." : "No deadlines were identified."}</p>}
         </article>
         <article className="analysis-card analysis-card-wide">
-          <div className="analysis-card-title"><span>05</span><h3>Action items</h3><b>{analysis.actionItems.length}</b></div>
-          {analysis.actionItems.length ? (
+          <div className="analysis-card-title"><span>05</span><h3>Action items</h3><b>{actionItems.length}</b></div>
+          {actionItems.length ? (
             <ul className="action-list">
-              {analysis.actionItems.map((action) => (
+              {actionItems.map((action) => (
                 <li key={action.id}>
                   <label>
                     <input type="checkbox" checked={action.status === "completed"} onChange={() => onToggleAction(action.id)} />
@@ -209,7 +416,7 @@ function AnalysisPanel({
                 </li>
               ))}
             </ul>
-          ) : <p className="section-empty">No action items were identified.</p>}
+          ) : <p className="section-empty">{query ? "No action items match this search." : "No action items were identified."}</p>}
         </article>
         <article className="analysis-card">
           <div className="analysis-card-title"><span>06</span><h3>Open questions</h3><b>{analysis.openQuestions.length}</b></div>
@@ -243,7 +450,11 @@ function FindingGroup({
       {items.length ? (
         <ul>
           {items.map((item) => (
-            <li key={item.id}><strong>{item.text}</strong><p>{item.reason}</p></li>
+            <li key={item.id}>
+              <strong>{item.text}</strong>
+              <p>{item.reason}</p>
+              <Evidence>{item.evidence}</Evidence>
+            </li>
           ))}
         </ul>
       ) : <p className="section-empty">{emptyCopy}</p>}
@@ -259,22 +470,36 @@ function ScopeResult({
   result,
   saved,
   copyFeedback,
-  onCopy,
+  explanationCopied,
+  replyCopied,
+  onCopyExplanation,
+  onCopyReply,
   onSave,
 }: {
   result: ScopeCheck;
   saved: boolean;
   copyFeedback: string;
-  onCopy: () => void;
+  explanationCopied: boolean;
+  replyCopied: boolean;
+  onCopyExplanation: () => void;
+  onCopyReply: () => void;
   onSave: () => void;
 }) {
   return (
     <section className={`scope-result scope-result-${result.riskLevel}`} aria-live="polite">
       <div className="scope-result-heading">
-        <div>
+        <div className="scope-result-copy">
           <span className="micro-label">Scope review</span>
           <h2>{result.isScopeChange ? "Possible scope change detected" : "No material scope change detected"}</h2>
           <p>{result.explanation}</p>
+          <button
+            className="copy-button"
+            type="button"
+            aria-label="Copy scope review explanation"
+            onClick={onCopyExplanation}
+          >
+            {explanationCopied ? "Copied" : "Copy explanation"}
+          </button>
         </div>
         <RiskBadge risk={result.riskLevel} />
       </div>
@@ -291,7 +516,7 @@ function ScopeResult({
       </section>
 
       <section className="reply-panel">
-        <div className="reply-heading"><div><span className="section-kicker">Suggested professional reply</span><h3>Respond clearly, without escalating tension.</h3></div><button className="button button-secondary button-compact" type="button" onClick={onCopy}>Copy Reply</button></div>
+        <div className="reply-heading"><div><span className="section-kicker">Suggested professional reply</span><h3>Respond clearly, without escalating tension.</h3></div><button className="button button-secondary button-compact" type="button" onClick={onCopyReply}>{replyCopied ? "Copied" : "Copy Reply"}</button></div>
         <blockquote>{result.suggestedReply}</blockquote>
         {copyFeedback && <p className="success-message" role="status">{copyFeedback}</p>}
       </section>
@@ -307,6 +532,7 @@ function ScopeResult({
 export function ProjectWorkspace() {
   const params = useParams<{ id: string }>();
   const { getProject, ready, updateProject } = useProjects();
+  const { addToast } = useToast();
   const project = getProject(params.id);
   const [contextDraft, setContextDraft] = useState(
     () => project?.originalContext ?? "",
@@ -328,6 +554,9 @@ export function ProjectWorkspace() {
     () => Boolean(project?.scopeChecks[0]),
   );
   const [copyFeedback, setCopyFeedback] = useState("");
+  const [copiedTarget, setCopiedTarget] = useState<
+    "summary" | "explanation" | "reply" | null
+  >(null);
 
   if (!ready) {
     return <div className="loading-state" aria-live="polite"><span /><p>Opening project…</p></div>;
@@ -360,6 +589,11 @@ export function ProjectWorkspace() {
     updateProject(activeProject.id, { originalContext: context });
     setContextDraft(context);
     setContextFeedback("Context saved to this project.");
+    addToast({
+      title: "Project saved",
+      message: "The original client context is now part of this record.",
+      tone: "success",
+    });
   }
 
   async function analyseProject() {
@@ -374,13 +608,26 @@ export function ProjectWorkspace() {
       updateProject(activeProject.id, {
         analysis,
       });
+      addToast({
+        title: "Analysis completed",
+        message: "The structured project record is ready.",
+        tone: "success",
+      });
     } catch (error) {
-      setAnalysisError(
-        getWebhookErrorMessage(
-          error,
-          "Project analysis could not be completed. Please try again.",
-        ),
+      const message = getWebhookErrorMessage(
+        error,
+        "Project analysis could not be completed. Please try again.",
       );
+      setAnalysisError(message);
+      addToast({
+        title: message.toLowerCase().includes("not configured")
+          ? "Service not configured"
+          : "Request failed",
+        message: message.toLowerCase().includes("not configured")
+          ? "Add the Analyse Project webhook configuration before trying again."
+          : "The analysis could not be completed. Your saved project was not changed.",
+        tone: "error",
+      });
     } finally {
       setAnalysisLoading(false);
     }
@@ -425,13 +672,26 @@ export function ProjectWorkspace() {
     try {
       const result = await checkScopeWithWebhook(activeProject, message);
       setScopeResult(result);
+      addToast({
+        title: "Scope check completed",
+        message: "The new request has been compared with the project record.",
+        tone: "success",
+      });
     } catch (error) {
-      setScopeError(
-        getWebhookErrorMessage(
-          error,
-          "The scope check could not be completed. Please try again.",
-        ),
+      const errorMessage = getWebhookErrorMessage(
+        error,
+        "The scope check could not be completed. Please try again.",
       );
+      setScopeError(errorMessage);
+      addToast({
+        title: errorMessage.toLowerCase().includes("not configured")
+          ? "Service not configured"
+          : "Request failed",
+        message: errorMessage.toLowerCase().includes("not configured")
+          ? "Add the Scope Change webhook configuration before trying again."
+          : "The scope check could not be completed. Your saved project was not changed.",
+        tone: "error",
+      });
     } finally {
       setScopeLoading(false);
     }
@@ -444,16 +704,83 @@ export function ProjectWorkspace() {
       scopeChecks: [scopeResult, ...current.scopeChecks],
     }));
     setScopeSaved(true);
+    addToast({
+      title: "Scope check saved",
+      message: "The result and suggested reply are now in the project record.",
+      tone: "success",
+    });
   }
 
-  async function copyReply() {
-    if (!scopeResult) return;
+  async function copyText(
+    text: string,
+    target: "summary" | "explanation" | "reply",
+    label: string,
+  ) {
     try {
-      await navigator.clipboard.writeText(scopeResult.suggestedReply);
-      setCopyFeedback("Reply copied to your clipboard.");
+      await navigator.clipboard.writeText(text);
+      setCopiedTarget(target);
+      if (target === "reply") {
+        setCopyFeedback("Reply copied to your clipboard.");
+      }
+      addToast({
+        title: "Copied",
+        message: `${label} copied to your clipboard.`,
+        tone: "success",
+      });
+      window.setTimeout(() => {
+        setCopiedTarget((current) => (current === target ? null : current));
+      }, 2_000);
     } catch {
-      setCopyFeedback("Copy was unavailable. Select the reply text and copy it manually.");
+      if (target === "reply") {
+        setCopyFeedback(
+          "Copy was unavailable. Select the reply text and copy it manually.",
+        );
+      }
+      addToast({
+        title: "Copy unavailable",
+        message: "Select the text and copy it manually.",
+        tone: "error",
+      });
     }
+  }
+
+  function exportProject() {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      project: {
+        id: activeProject.id,
+        name: activeProject.name,
+        clientName: activeProject.clientName,
+        description: activeProject.description,
+        originalContext: activeProject.originalContext,
+        analysis: activeProject.analysis,
+        scopeChecks: activeProject.scopeChecks,
+        createdAt: activeProject.createdAt,
+        updatedAt: activeProject.updatedAt,
+        isDemo: activeProject.isDemo ?? false,
+      },
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const safeName =
+      activeProject.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "project";
+    link.href = url;
+    link.download = `scopeguard-${safeName}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    addToast({
+      title: "Project exported",
+      message: "A private JSON copy was downloaded.",
+      tone: "success",
+    });
   }
 
   return (
@@ -468,7 +795,11 @@ export function ProjectWorkspace() {
           </div>
           <p>{project.clientName} · Updated {dateFormatter.format(new Date(project.updatedAt))}</p>
         </div>
-        <span className="status status-device">Saved on this device</span>
+        <div className="workspace-actions" data-no-print>
+          <span className="status status-device">Saved on this device</span>
+          <button className="button button-secondary button-compact" type="button" onClick={exportProject}>Export JSON</button>
+          <button className="button button-secondary button-compact" type="button" onClick={() => window.print()}>Print</button>
+        </div>
       </div>
 
       <section className="overview-card">
@@ -492,11 +823,22 @@ export function ProjectWorkspace() {
         </div>
       )}
 
+      <ProjectActivityTimeline project={project} />
+
       <section className="workspace-section context-section">
         <div className="section-title-row">
           <div><span className="micro-label">Original agreement</span><h2>Client context</h2><p>Paste the project brief and message history that define the current agreement.</p></div>
           <span className="character-count" aria-live="polite">{contextDraft.length.toLocaleString()} characters</span>
         </div>
+        {!activeProject.originalContext && !contextDraft && (
+          <div className="compact-empty">
+            <span aria-hidden="true">01</span>
+            <div>
+              <strong>No original context saved yet.</strong>
+              <p>Add the brief or client message history to establish the project baseline.</p>
+            </div>
+          </div>
+        )}
         <label className="sr-only" htmlFor="client-context">Original project brief and client message history</label>
         <textarea
           className="large-textarea"
@@ -528,7 +870,13 @@ export function ProjectWorkspace() {
         loading={analysisLoading}
         canAnalyse={Boolean(project.originalContext)}
         error={analysisError}
+        summaryCopied={copiedTarget === "summary"}
         onAnalyse={analyseProject}
+        onCopySummary={() => {
+          if (project.analysis) {
+            void copyText(project.analysis.summary, "summary", "Project summary");
+          }
+        }}
         onToggleAction={toggleAction}
       />
 
@@ -563,8 +911,18 @@ export function ProjectWorkspace() {
       </section>
 
       {scopeLoading && (
-        <div className="inline-loading scope-loading" aria-live="polite">
-          <span /><div><strong>Comparing the new request</strong><p>Checking deliverables, decisions, and timing…</p></div>
+        <div className="scope-loading">
+          <LoadingPanel kind="scope" compact />
+        </div>
+      )}
+
+      {!scopeLoading && !scopeResult && project.scopeChecks.length === 0 && (
+        <div className="compact-empty scope-empty">
+          <span aria-hidden="true">00</span>
+          <div>
+            <strong>No scope checks saved yet.</strong>
+            <p>Paste a new client request above to compare it with the confirmed project record.</p>
+          </div>
         </div>
       )}
 
@@ -573,7 +931,22 @@ export function ProjectWorkspace() {
           result={scopeResult}
           saved={scopeSaved}
           copyFeedback={copyFeedback}
-          onCopy={copyReply}
+          explanationCopied={copiedTarget === "explanation"}
+          replyCopied={copiedTarget === "reply"}
+          onCopyExplanation={() => {
+            void copyText(
+              scopeResult.explanation,
+              "explanation",
+              "Scope explanation",
+            );
+          }}
+          onCopyReply={() => {
+            void copyText(
+              scopeResult.suggestedReply,
+              "reply",
+              "Suggested reply",
+            );
+          }}
           onSave={saveScopeCheck}
         />
       )}

@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useProjects } from "./project-provider";
 import { ProjectCard } from "./project-card";
+import { useToast } from "./toast-provider";
 
 export function ProjectsDashboard() {
   const { projects, ready, createDemo, deleteProject } = useProjects();
+  const { addToast } = useToast();
   const router = useRouter();
 
   if (!ready) {
@@ -33,8 +35,15 @@ export function ProjectsDashboard() {
         </section>
       ) : (
         <>
-          <div className="dashboard-toolbar"><p>{projects.length} {projects.length === 1 ? "project" : "projects"} stored on this device</p><button className="text-button" onClick={() => router.push(`/projects/${createDemo().id}`)}>Add demo project</button></div>
-          <div className="project-grid">{projects.map((project) => <ProjectCard key={project.id} project={project} onDelete={() => deleteProject(project.id)} />)}</div>
+          <div className="dashboard-toolbar"><p>{projects.length} {projects.length === 1 ? "project" : "projects"} stored on this device</p><button className="text-button" type="button" onClick={() => router.push(`/projects/${createDemo().id}`)}>Add demo project</button></div>
+          <div className="project-grid">{projects.map((project) => <ProjectCard key={project.id} project={project} onDelete={() => {
+            deleteProject(project.id);
+            addToast({
+              title: "Project deleted",
+              message: `${project.name} was removed from this device.`,
+              tone: "success",
+            });
+          }} />)}</div>
         </>
       )}
     </div>

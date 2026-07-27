@@ -74,7 +74,7 @@ Then open **AI — Analyse Agreement** and select the credential you created.
 
 The workflow currently uses the stable, structured-output-capable model:
 
-`gemini-2.5-flash-lite`
+`gemini-flash-latest`
 
 Google currently lists this model on the Gemini Developer API free tier. Free
 usage is still subject to Google's regional availability and rate limits. See

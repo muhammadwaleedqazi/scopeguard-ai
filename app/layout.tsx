@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/header";
 import { ProjectProvider } from "@/components/project-provider";
+import { ToastProvider } from "@/components/toast-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,10 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ProjectProvider>
-          <Header />
-          <main>{children}</main>
-        </ProjectProvider>
+        <ToastProvider>
+          <ProjectProvider>
+            <Header />
+            <main>{children}</main>
+          </ProjectProvider>
+        </ToastProvider>
       </body>
     </html>
   );

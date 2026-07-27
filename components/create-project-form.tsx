@@ -4,9 +4,11 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProjects } from "./project-provider";
+import { useToast } from "./toast-provider";
 
 export function CreateProjectForm() {
   const { createProject } = useProjects();
+  const { addToast } = useToast();
   const router = useRouter();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -24,7 +26,13 @@ export function CreateProjectForm() {
     if (!input.description) nextErrors.description = "Add a short project description.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    router.push(`/projects/${createProject(input).id}`);
+    const project = createProject(input);
+    addToast({
+      title: "Project saved",
+      message: "Your new project record is ready.",
+      tone: "success",
+    });
+    router.push(`/projects/${project.id}`);
   }
 
   return (
