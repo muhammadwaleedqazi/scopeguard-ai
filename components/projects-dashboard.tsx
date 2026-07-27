@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FolderOpen, Plus, Sparkles } from "lucide-react";
 import { useProjects } from "./project-provider";
 import { ProjectCard } from "./project-card";
 import { useToast } from "./toast-provider";
@@ -19,17 +20,17 @@ export function ProjectsDashboard() {
     <div className="shell page-space">
       <div className="page-heading">
         <div><span className="eyebrow"><span /> Project records</span><h1>Your projects</h1><p>Keep each client engagement clear, current, and easy to return to.</p></div>
-        <Link className="button button-primary" href="/projects/new">Create project <span>+</span></Link>
+        <Link className="button button-primary" href="/projects/new"><Plus size={16} aria-hidden="true" /> Create project</Link>
       </div>
       {projects.length === 0 ? (
         <section className="empty-state">
-          <span className="empty-mark">S</span>
+          <span className="empty-mark" aria-hidden="true"><FolderOpen size={24} /></span>
           <span className="micro-label">Your project desk is clear</span>
           <h2>Create a reliable record<br />from the very first conversation.</h2>
           <p>Add a client project to start organizing what was agreed. Nothing leaves this device in the current MVP.</p>
           <div className="empty-actions">
-            <Link className="button button-primary" href="/projects/new">Create your first project <span>→</span></Link>
-            <button className="button button-secondary" onClick={() => router.push(`/projects/${createDemo().id}`)}>Explore a demo project</button>
+            <Link className="button button-primary" href="/projects/new"><Plus size={16} aria-hidden="true" /> Create your first project</Link>
+            <button className="button button-secondary" onClick={() => router.push(`/projects/${createDemo().id}`)}><Sparkles size={16} aria-hidden="true" /> Explore a demo project</button>
           </div>
           <small>Demo content is fictional and clearly labeled.</small>
         </section>

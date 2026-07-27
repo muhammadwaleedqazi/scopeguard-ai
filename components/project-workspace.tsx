@@ -3,6 +3,34 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  BrainCircuit,
+  CalendarClock,
+  CheckCircle2,
+  CircleHelp,
+  ClipboardCheck,
+  Clock3,
+  Copy,
+  Download,
+  FileText,
+  FolderKanban,
+  Gauge,
+  Gavel,
+  ListChecks,
+  Printer,
+  ScanSearch,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { DEMO_MESSAGE } from "@/lib/mock-data";
 import {
   analyseProjectWithWebhook,
@@ -30,7 +58,18 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 });
 
 function StatusBadge({ status }: { status: Requirement["status"] }) {
-  return <span className={`status status-${status}`}>{status}</span>;
+  const StatusIcon =
+    status === "confirmed"
+      ? CheckCircle2
+      : status === "proposed"
+        ? Sparkles
+        : CircleHelp;
+  return (
+    <span className={`status status-${status}`}>
+      <StatusIcon size={12} aria-hidden="true" />
+      {status}
+    </span>
+  );
 }
 
 function Evidence({ children }: { children?: string }) {
@@ -82,7 +121,7 @@ function DecisionList({
         <li key={decision.id}>
           <div className="record-item-heading">
             <span>{decision.text}</span>
-            <span className="status status-recorded">Recorded</span>
+            <span className="status status-recorded"><CheckCircle2 size={12} aria-hidden="true" /> Recorded</span>
           </div>
           <Evidence>{decision.evidence}</Evidence>
         </li>
@@ -117,7 +156,9 @@ function LoadingPanel({
       aria-live="polite"
       aria-busy="true"
     >
-      <span className="loading-orbit" aria-hidden="true"><i /></span>
+      <span className="loading-orbit" aria-hidden="true">
+        {kind === "analysis" ? <BrainCircuit size={23} /> : <ShieldAlert size={23} />}
+      </span>
       <div>
         <span className="micro-label">
           {kind === "analysis" ? "Analysing agreement" : "Reviewing request"}
@@ -181,9 +222,12 @@ function ProjectActivityTimeline({ project }: { project: Project }) {
 
   return (
     <section className="activity-panel" aria-labelledby="activity-title">
-      <div>
-        <span className="micro-label">Project activity</span>
-        <h2 id="activity-title">Recent record</h2>
+      <div className="sidebar-card-heading">
+        <span className="section-icon section-icon-soft" aria-hidden="true"><Activity size={17} /></span>
+        <div>
+          <span className="micro-label">Project activity</span>
+          <h2 id="activity-title">Recent record</h2>
+        </div>
       </div>
       <ol>
         {events.slice(0, 5).map((event) => (
@@ -251,14 +295,14 @@ function AnalysisPanel({
   if (!analysis) {
     return (
       <section className="analysis-empty">
-        <span className="analysis-empty-mark">01</span>
+        <span className="analysis-empty-mark" aria-hidden="true"><BrainCircuit size={25} /></span>
         <div>
           <span className="micro-label">Project analysis</span>
           <h2>Turn the brief into a working project record.</h2>
           <p>Once the original context is saved, organise it into requirements, decisions, deadlines, and follow-up items.</p>
           {error && <p className="form-alert" role="alert">{error}</p>}
           <button className="button button-primary" type="button" onClick={onAnalyse} disabled={!canAnalyse}>
-            Analyse Project <span>→</span>
+            <Sparkles size={16} aria-hidden="true" /> Analyse Project
           </button>
           {!canAnalyse && <small>Save the original client context first.</small>}
         </div>
@@ -310,24 +354,28 @@ function AnalysisPanel({
   return (
     <section className="analysis-shell">
       <div className="analysis-heading">
-        <div>
-          <span className="micro-label">Structured project record</span>
-          <h2>Project analysis</h2>
-          <p>Last analysed {dateFormatter.format(new Date(analysis.analysedAt))}</p>
-          {error && <p className="form-alert" role="alert">{error}</p>}
+        <div className="section-heading-cluster">
+          <span className="section-icon" aria-hidden="true"><BrainCircuit size={20} /></span>
+          <div>
+            <span className="micro-label">Structured project record</span>
+            <h2>Project analysis</h2>
+            <p>Last analysed {dateFormatter.format(new Date(analysis.analysedAt))}</p>
+            {error && <p className="form-alert" role="alert">{error}</p>}
+          </div>
         </div>
-        <button className="button button-secondary button-compact" type="button" onClick={onAnalyse}>Analyse again</button>
+        <button className="button button-secondary button-compact" type="button" onClick={onAnalyse}><Sparkles size={15} aria-hidden="true" /> Analyse again</button>
       </div>
 
       <article className="summary-panel">
         <div className="summary-panel-heading">
-          <span className="section-kicker">Project summary</span>
+          <span className="section-kicker"><FolderKanban size={14} aria-hidden="true" /> Project summary</span>
           <button
             className="copy-button copy-button-dark"
             type="button"
             aria-label="Copy project summary"
             onClick={onCopySummary}
           >
+            <Copy size={13} aria-hidden="true" />
             {summaryCopied ? "Copied" : "Copy summary"}
           </button>
         </div>
@@ -337,7 +385,7 @@ function AnalysisPanel({
       <div className="analysis-toolbar" role="search">
         <label htmlFor="analysis-search">Filter analysis</label>
         <div className="search-control">
-          <span aria-hidden="true">⌕</span>
+          <Search size={16} aria-hidden="true" />
           <input
             id="analysis-search"
             type="search"
@@ -351,7 +399,8 @@ function AnalysisPanel({
               aria-label="Clear analysis search"
               onClick={() => setSearchQuery("")}
             >
-              Clear
+              <X size={13} aria-hidden="true" />
+              <span>Clear</span>
             </button>
           )}
         </div>
@@ -364,7 +413,7 @@ function AnalysisPanel({
 
       {query && searchResultCount === 0 && (
         <div className="search-empty" role="status">
-          <span aria-hidden="true">0</span>
+          <span aria-hidden="true"><Search size={16} /></span>
           <div>
             <strong>No requirements, decisions, deadlines, or actions match “{searchQuery.trim()}”.</strong>
             <p>Try a broader term or clear the filter to view the full record.</p>
@@ -374,19 +423,19 @@ function AnalysisPanel({
 
       <div className="analysis-grid">
         <article className="analysis-card analysis-card-wide">
-          <div className="analysis-card-title"><span>01</span><h3>Confirmed requirements</h3><b>{confirmed.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><ListChecks size={16} /></span><h3>Confirmed requirements</h3><b>{confirmed.length}</b></div>
           <RequirementList requirements={confirmed} emptyCopy={query ? "No confirmed requirements match this search." : "No confirmed requirements were identified."} />
         </article>
         <article className="analysis-card analysis-card-wide">
-          <div className="analysis-card-title"><span>02</span><h3>Proposed or unclear</h3><b>{needsAttention.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><CircleHelp size={16} /></span><h3>Proposed or unclear</h3><b>{needsAttention.length}</b></div>
           <RequirementList requirements={needsAttention} emptyCopy={query ? "No proposed or unclear requirements match this search." : "No proposed or unclear requirements were identified."} />
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>03</span><h3>Decisions</h3><b>{decisions.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><Gavel size={16} /></span><h3>Decisions</h3><b>{decisions.length}</b></div>
           <DecisionList decisions={decisions} emptyCopy={query ? "No decisions match this search." : undefined} />
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>04</span><h3>Deadlines</h3><b>{deadlines.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><CalendarClock size={16} /></span><h3>Deadlines</h3><b>{deadlines.length}</b></div>
           {deadlines.length ? (
             <ul className="record-items">
               {deadlines.map((deadline) => (
@@ -400,7 +449,7 @@ function AnalysisPanel({
           ) : <p className="section-empty">{query ? "No deadlines match this search." : "No deadlines were identified."}</p>}
         </article>
         <article className="analysis-card analysis-card-wide">
-          <div className="analysis-card-title"><span>05</span><h3>Action items</h3><b>{actionItems.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><ClipboardCheck size={16} /></span><h3>Action items</h3><b>{actionItems.length}</b></div>
           {actionItems.length ? (
             <ul className="action-list">
               {actionItems.map((action) => (
@@ -419,15 +468,15 @@ function AnalysisPanel({
           ) : <p className="section-empty">{query ? "No action items match this search." : "No action items were identified."}</p>}
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>06</span><h3>Open questions</h3><b>{analysis.openQuestions.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><CircleHelp size={16} /></span><h3>Open questions</h3><b>{analysis.openQuestions.length}</b></div>
           <SimpleList items={analysis.openQuestions} emptyCopy="No open questions were identified." />
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>07</span><h3>Client preferences</h3><b>{analysis.clientPreferences.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><SlidersHorizontal size={16} /></span><h3>Client preferences</h3><b>{analysis.clientPreferences.length}</b></div>
           <SimpleList items={analysis.clientPreferences} emptyCopy="No client preferences were identified." />
         </article>
         <article className="analysis-card">
-          <div className="analysis-card-title"><span>08</span><h3>People mentioned</h3><b>{analysis.people.length}</b></div>
+          <div className="analysis-card-title"><span className="analysis-card-icon" aria-hidden="true"><Users size={16} /></span><h3>People mentioned</h3><b>{analysis.people.length}</b></div>
           <SimpleList items={analysis.people} emptyCopy="No people were identified." />
         </article>
       </div>
@@ -439,14 +488,16 @@ function FindingGroup({
   title,
   items,
   emptyCopy,
+  icon: Icon,
 }: {
   title: string;
   items: ScopeFinding[];
   emptyCopy: string;
+  icon: LucideIcon;
 }) {
   return (
     <section className="finding-group">
-      <div className="finding-heading"><h4>{title}</h4><span>{items.length}</span></div>
+      <div className="finding-heading"><h4><Icon size={15} aria-hidden="true" /> {title}</h4><span>{items.length}</span></div>
       {items.length ? (
         <ul>
           {items.map((item) => (
@@ -463,7 +514,38 @@ function FindingGroup({
 }
 
 function RiskBadge({ risk }: { risk: RiskLevel }) {
-  return <span className={`risk-badge risk-${risk}`}><i /> {risk} risk</span>;
+  const RiskIcon =
+    risk === "none"
+      ? ShieldCheck
+      : risk === "high"
+        ? ShieldAlert
+        : AlertTriangle;
+  return <span className={`risk-badge risk-${risk}`}><RiskIcon size={13} aria-hidden="true" /> {risk} risk</span>;
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone = "default",
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: React.ReactNode;
+  detail: string;
+  tone?: "default" | "success" | "attention";
+}) {
+  return (
+    <article className={`metric-card metric-card-${tone}`}>
+      <span className="metric-icon" aria-hidden="true"><Icon size={18} /></span>
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{detail}</small>
+      </div>
+    </article>
+  );
 }
 
 function ScopeResult({
@@ -489,7 +571,7 @@ function ScopeResult({
     <section className={`scope-result scope-result-${result.riskLevel}`} aria-live="polite">
       <div className="scope-result-heading">
         <div className="scope-result-copy">
-          <span className="micro-label">Scope review</span>
+          <span className="scope-result-label"><ShieldAlert size={18} aria-hidden="true" /><span className="micro-label">Scope review</span></span>
           <h2>{result.isScopeChange ? "Possible scope change detected" : "No material scope change detected"}</h2>
           <p>{result.explanation}</p>
           <button
@@ -498,6 +580,7 @@ function ScopeResult({
             aria-label="Copy scope review explanation"
             onClick={onCopyExplanation}
           >
+            <Copy size={13} aria-hidden="true" />
             {explanationCopied ? "Copied" : "Copy explanation"}
           </button>
         </div>
@@ -505,25 +588,25 @@ function ScopeResult({
       </div>
 
       <div className="finding-grid">
-        <FindingGroup title="New requests" items={result.newRequests} emptyCopy="No new requests identified." />
-        <FindingGroup title="Changed requirements" items={result.changedRequirements} emptyCopy="No changed requirements identified." />
-        <FindingGroup title="Conflicts" items={result.conflicts} emptyCopy="No conflicts identified." />
+        <FindingGroup icon={Sparkles} title="New requests" items={result.newRequests} emptyCopy="No new requests identified." />
+        <FindingGroup icon={ListChecks} title="Changed requirements" items={result.changedRequirements} emptyCopy="No changed requirements identified." />
+        <FindingGroup icon={AlertTriangle} title="Conflicts" items={result.conflicts} emptyCopy="No conflicts identified." />
       </div>
 
       <section className="impact-panel">
-        <span className="section-kicker">Possible project impact</span>
+        <span className="section-kicker"><Gauge size={14} aria-hidden="true" /> Possible project impact</span>
         <ul>{result.possibleImpact.map((impact) => <li key={impact}>{impact}</li>)}</ul>
       </section>
 
       <section className="reply-panel">
-        <div className="reply-heading"><div><span className="section-kicker">Suggested professional reply</span><h3>Respond clearly, without escalating tension.</h3></div><button className="button button-secondary button-compact" type="button" onClick={onCopyReply}>{replyCopied ? "Copied" : "Copy Reply"}</button></div>
+        <div className="reply-heading"><div><span className="section-kicker"><FileText size={14} aria-hidden="true" /> Suggested professional reply</span><h3>Respond clearly, without escalating tension.</h3></div><button className="button button-secondary button-compact" type="button" onClick={onCopyReply}><Copy size={14} aria-hidden="true" /> {replyCopied ? "Copied" : "Copy Reply"}</button></div>
         <blockquote>{result.suggestedReply}</blockquote>
         {copyFeedback && <p className="success-message" role="status">{copyFeedback}</p>}
       </section>
 
       <div className="result-actions">
         <span>{saved ? "This scope check is saved in the project record." : "Review the result before saving it to the project."}</span>
-        <button className="button button-primary" type="button" onClick={onSave} disabled={saved}>{saved ? "Scope Check Saved" : "Save Scope Check"}</button>
+        <button className="button button-primary" type="button" onClick={onSave} disabled={saved}><ShieldCheck size={16} aria-hidden="true" /> {saved ? "Scope Check Saved" : "Save Scope Check"}</button>
       </div>
     </section>
   );
@@ -579,6 +662,24 @@ export function ProjectWorkspace() {
       (requirement) => requirement.status === "confirmed",
     ).length ?? 0;
   const latestRisk = project.scopeChecks[0]?.riskLevel ?? "none";
+  const projectState = !project.originalContext
+    ? {
+        label: "Context needed",
+        tone: "pending",
+        icon: FileText,
+      }
+    : !project.analysis
+      ? {
+          label: "Ready for analysis",
+          tone: "ready",
+          icon: Sparkles,
+        }
+      : {
+          label: "Project record ready",
+          tone: "complete",
+          icon: ShieldCheck,
+        };
+  const ProjectStateIcon = projectState.icon;
 
   function saveContext() {
     const context = contextDraft.trim();
@@ -785,54 +886,105 @@ export function ProjectWorkspace() {
 
   return (
     <div className="shell workspace page-space">
-      <Link className="back-link" href="/projects">← All projects</Link>
-
-      <div className="workspace-heading">
-        <div>
-          <div className="title-line">
-            <h1>{project.name}</h1>
-            {project.isDemo && <span className="status status-demo">Demo project</span>}
+      <section className="project-hero">
+        <div className="project-hero-glow" aria-hidden="true" />
+        <div className="project-hero-top">
+          <Link className="back-link" href="/projects"><ArrowLeft size={15} aria-hidden="true" /> All projects</Link>
+          <span className={`project-state project-state-${projectState.tone}`}>
+            <ProjectStateIcon size={14} aria-hidden="true" />
+            {projectState.label}
+          </span>
+        </div>
+        <div className="project-hero-main">
+          <div className="project-hero-identity">
+            <span className="project-hero-icon" aria-hidden="true"><FolderKanban size={26} /></span>
+            <div>
+              <div className="title-line">
+                <h1>{project.name}</h1>
+                {project.isDemo && <span className="status status-demo">Demo project</span>}
+              </div>
+              <div className="project-hero-meta">
+                <span><Users size={14} aria-hidden="true" /> {project.clientName}</span>
+                <span><Clock3 size={14} aria-hidden="true" /> Updated {dateFormatter.format(new Date(project.updatedAt))}</span>
+                <span><ShieldCheck size={14} aria-hidden="true" /> Saved on this device</span>
+              </div>
+            </div>
           </div>
-          <p>{project.clientName} · Updated {dateFormatter.format(new Date(project.updatedAt))}</p>
+          <div className="workspace-actions" data-no-print>
+            <button className="button button-secondary button-compact" type="button" onClick={exportProject}><Download size={15} aria-hidden="true" /> Export JSON</button>
+            <button className="button button-secondary button-compact" type="button" onClick={() => window.print()}><Printer size={15} aria-hidden="true" /> Print</button>
+          </div>
         </div>
-        <div className="workspace-actions" data-no-print>
-          <span className="status status-device">Saved on this device</span>
-          <button className="button button-secondary button-compact" type="button" onClick={exportProject}>Export JSON</button>
-          <button className="button button-secondary button-compact" type="button" onClick={() => window.print()}>Print</button>
-        </div>
-      </div>
+      </section>
 
-      <section className="overview-card">
-        <div>
-          <span className="micro-label">Project overview</span>
-          <h2>{project.description}</h2>
+      <section className="overview-dashboard" aria-labelledby="overview-title">
+        <article className="overview-summary-card">
+          <div className="overview-summary-top">
+            <span className="overview-summary-icon" aria-hidden="true"><FolderKanban size={21} /></span>
+            <span className="micro-label">Project overview</span>
+          </div>
+          <h2 id="overview-title">{project.description}</h2>
+          <div className="overview-summary-footer">
+            <span>Client</span>
+            <strong>{project.clientName}</strong>
+          </div>
+        </article>
+        <div className="metric-card-grid">
+          <MetricCard
+            icon={FileText}
+            label="Original context"
+            value={project.originalContext ? "Saved" : "Not added"}
+            detail={project.originalContext ? "Baseline available" : "Add the agreement"}
+            tone={project.originalContext ? "success" : "attention"}
+          />
+          <MetricCard
+            icon={ListChecks}
+            label="Confirmed requirements"
+            value={confirmedCount}
+            detail="In the current record"
+            tone={confirmedCount > 0 ? "success" : "default"}
+          />
+          <MetricCard
+            icon={ScanSearch}
+            label="Scope checks"
+            value={project.scopeChecks.length}
+            detail="Saved comparisons"
+          />
+          <MetricCard
+            icon={latestRisk === "none" ? ShieldCheck : ShieldAlert}
+            label="Latest risk"
+            value={<RiskBadge risk={latestRisk} />}
+            detail="Most recent scope review"
+            tone={latestRisk === "high" || latestRisk === "medium" ? "attention" : "success"}
+          />
+          <MetricCard
+            icon={Clock3}
+            label="Last updated"
+            value={dateFormatter.format(new Date(project.updatedAt))}
+            detail="Saved on this device"
+          />
         </div>
-        <dl className="metric-grid">
-          <div><dt>Original context</dt><dd>{project.originalContext ? "Saved" : "Not added"}</dd></div>
-          <div><dt>Confirmed requirements</dt><dd>{confirmedCount}</dd></div>
-          <div><dt>Scope checks</dt><dd>{project.scopeChecks.length}</dd></div>
-          <div><dt>Latest risk</dt><dd><RiskBadge risk={latestRisk} /></dd></div>
-          <div><dt>Last updated</dt><dd>{dateFormatter.format(new Date(project.updatedAt))}</dd></div>
-        </dl>
       </section>
 
       {project.isDemo && (
         <div className="demo-notice">
+          <span aria-hidden="true"><Sparkles size={16} /></span>
           <strong>Fictional demo project</strong>
           <span>This example demonstrates the full project record and is not real client data.</span>
         </div>
       )}
 
-      <ProjectActivityTimeline project={project} />
+      <div className="project-content-layout">
+        <div className="project-main-column">
 
       <section className="workspace-section context-section">
         <div className="section-title-row">
-          <div><span className="micro-label">Original agreement</span><h2>Client context</h2><p>Paste the project brief and message history that define the current agreement.</p></div>
+          <div className="section-heading-cluster"><span className="section-icon" aria-hidden="true"><FileText size={20} /></span><div><span className="micro-label">Original agreement</span><h2>Client context</h2><p>Paste the project brief and message history that define the current agreement.</p></div></div>
           <span className="character-count" aria-live="polite">{contextDraft.length.toLocaleString()} characters</span>
         </div>
         {!activeProject.originalContext && !contextDraft && (
           <div className="compact-empty">
-            <span aria-hidden="true">01</span>
+            <span aria-hidden="true"><FileText size={16} /></span>
             <div>
               <strong>No original context saved yet.</strong>
               <p>Add the brief or client message history to establish the project baseline.</p>
@@ -861,7 +1013,7 @@ export function ProjectWorkspace() {
           >
             {contextFeedback || "Saved context remains on this device and becomes the baseline for project checks."}
           </p>
-          <button className="button button-primary" type="button" onClick={saveContext}>Save Context</button>
+          <button className="button button-primary" type="button" onClick={saveContext}><ShieldCheck size={16} aria-hidden="true" /> Save Context</button>
         </div>
       </section>
 
@@ -882,7 +1034,7 @@ export function ProjectWorkspace() {
 
       <section className="workspace-section message-section">
         <div className="section-title-row">
-          <div><span className="micro-label">New client request</span><h2>Check for a scope change</h2><p>Compare a new client message with the structured project record.</p></div>
+          <div className="section-heading-cluster"><span className="section-icon section-icon-attention" aria-hidden="true"><ScanSearch size={20} /></span><div><span className="micro-label">New client request</span><h2>Check for a scope change</h2><p>Compare a new client message with the structured project record.</p></div></div>
           {project.scopeChecks.length > 0 && <span className="history-count">{project.scopeChecks.length} saved {project.scopeChecks.length === 1 ? "check" : "checks"}</span>}
         </div>
         <label className="sr-only" htmlFor="new-client-message">New client message</label>
@@ -905,7 +1057,7 @@ export function ProjectWorkspace() {
             {scopeError || "The message is stored with the project only when you save the scope check."}
           </p>
           <button className="button button-primary" type="button" onClick={checkScope} disabled={scopeLoading}>
-            {scopeLoading ? "Checking Scope…" : "Check for Scope Change"}
+            {scopeLoading ? <><span className="button-spinner" aria-hidden="true" /> Checking Scope…</> : <><ScanSearch size={16} aria-hidden="true" /> Check for Scope Change</>}
           </button>
         </div>
       </section>
@@ -918,7 +1070,7 @@ export function ProjectWorkspace() {
 
       {!scopeLoading && !scopeResult && project.scopeChecks.length === 0 && (
         <div className="compact-empty scope-empty">
-          <span aria-hidden="true">00</span>
+          <span aria-hidden="true"><ScanSearch size={16} /></span>
           <div>
             <strong>No scope checks saved yet.</strong>
             <p>Paste a new client request above to compare it with the confirmed project record.</p>
@@ -950,6 +1102,50 @@ export function ProjectWorkspace() {
           onSave={saveScopeCheck}
         />
       )}
+        </div>
+
+        <aside className="project-sidebar" aria-label="Project record summary">
+          <section className="sidebar-status-card">
+            <div className="sidebar-card-heading">
+              <span className="section-icon" aria-hidden="true"><ShieldCheck size={17} /></span>
+              <div>
+                <span className="micro-label">Record status</span>
+                <h2>Project readiness</h2>
+              </div>
+            </div>
+            <ul className="readiness-list">
+              <li>
+                <span className={project.originalContext ? "is-ready" : ""} aria-hidden="true">
+                  {project.originalContext ? <CheckCircle2 size={15} /> : <FileText size={15} />}
+                </span>
+                <div><strong>Original agreement</strong><small>{project.originalContext ? "Context saved" : "Context needed"}</small></div>
+              </li>
+              <li>
+                <span className={project.analysis ? "is-ready" : ""} aria-hidden="true">
+                  {project.analysis ? <CheckCircle2 size={15} /> : <BrainCircuit size={15} />}
+                </span>
+                <div><strong>Project analysis</strong><small>{project.analysis ? "Analysis available" : "Not analysed yet"}</small></div>
+              </li>
+              <li>
+                <span className={project.scopeChecks.length ? "is-ready" : ""} aria-hidden="true">
+                  {project.scopeChecks.length ? <CheckCircle2 size={15} /> : <ScanSearch size={15} />}
+                </span>
+                <div><strong>Scope history</strong><small>{project.scopeChecks.length ? `${project.scopeChecks.length} saved ${project.scopeChecks.length === 1 ? "check" : "checks"}` : "No checks saved"}</small></div>
+              </li>
+            </ul>
+          </section>
+
+          <ProjectActivityTimeline project={project} />
+
+          <section className="sidebar-privacy-card">
+            <span aria-hidden="true"><ShieldCheck size={18} /></span>
+            <div>
+              <strong>Private project record</strong>
+              <p>Project data stays in this browser unless you export it.</p>
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
