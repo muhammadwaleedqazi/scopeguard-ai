@@ -1,0 +1,73 @@
+{
+  "projectId": "demo-001",
+  "projectName": "ABC Clothing Website",
+  "existingAnalysis": {
+    "summary": "A responsive e-commerce website for ABC Clothing with a homepage, product catalogue, shopping cart, contact form and mobile-responsive layouts.",
+    "requirements": [
+      {
+        "id": "req-homepage",
+        "text": "Homepage",
+        "status": "confirmed",
+        "evidence": "The confirmed original scope includes a homepage."
+      },
+      {
+        "id": "req-catalogue",
+        "text": "Product catalogue",
+        "status": "confirmed",
+        "evidence": "The confirmed original scope includes a product catalogue."
+      },
+      {
+        "id": "req-cart",
+        "text": "Shopping cart",
+        "status": "confirmed",
+        "evidence": "The confirmed original scope includes a shopping cart."
+      },
+      {
+        "id": "req-contact",
+        "text": "Contact form",
+        "status": "confirmed",
+        "evidence": "The confirmed original scope includes a contact form."
+      },
+      {
+        "id": "req-responsive",
+        "text": "Mobile responsiveness",
+        "status": "confirmed",
+        "evidence": "The confirmed original scope includes mobile responsiveness."
+      },
+      {
+        "id": "req-payment",
+        "text": "Payment gateway integration",
+        "status": "proposed",
+        "evidence": "Payment gateway integration was discussed but postponed to phase two."
+      }
+    ],
+    "decisions": [
+      {
+        "id": "decision-homepage",
+        "text": "The client approved the homepage layout.",
+        "evidence": "The client approved the homepage layout."
+      }
+    ],
+    "deadlines": [
+      {
+        "id": "deadline-delivery",
+        "task": "Complete the confirmed website scope",
+        "date": "Within three weeks",
+        "evidence": "Final delivery should be within three weeks."
+      }
+    ],
+    "actionItems": [
+      {
+        "id": "action-images",
+        "task": "Provide product images",
+        "owner": "Client",
+        "deadline": "",
+        "status": "pending"
+      }
+    ],
+    "openQuestions": [],
+    "clientPreferences": [],
+    "people": []
+  },
+  "newMessage": "Please also add product reviews, discount codes, live chat and complete everything by Friday."
+}
